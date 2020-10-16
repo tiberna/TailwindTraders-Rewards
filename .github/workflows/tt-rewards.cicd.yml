@@ -90,9 +90,6 @@ jobs:
       run: |
         az group create -n ${{ env.AZURE_RESOURCE_GROUP_NAME }} -l ${{ env.AZURE_RESOURCE_GROUP_LOCATION }} 
         az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters vmUserPassword=${{ secrets.VM_PWD }}
-        $result = az group deployment show --name ghaction --resource-group ${{ env.AZURE_RESOURCE_GROUP_NAME }} --query '[properties.outputs.sqlserver.value]' -o tsv
-        $sql_server_name = $result[0]
-        Write-Output "::set-env name=SQL_SERVER_NAME::$sql_server_name"
 
     - name: Migrate and seed database
       uses: Azure/sql-action@v1
