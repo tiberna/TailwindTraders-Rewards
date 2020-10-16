@@ -11,6 +11,8 @@ Param(
     [parameter(Mandatory=$false)][string]$subscription,
     [parameter(Mandatory=$false)][string]$sqlAdminName,
     [parameter(Mandatory=$false)][string]$sqlAdminPassword,
+    [parameter(Mandatory=$false)][string]$vmUsername,
+    [parameter(Mandatory=$false)][string]$vmUserPassword,
     [parameter(Mandatory=$false)][string]$armScriptPath="deployment.json"
 )
 
@@ -104,7 +106,7 @@ try
         az group create -n $resourceGroup -l $location
     }
 
-    az deployment group create -g $resourceGroup --template-file $armScriptPath --parameters sqlServerAdministratorUser=$sqlAdminName --parameters sqlServerAdministratorPassword=$sqlAdminPassword
+    az deployment group create -g $resourceGroup --template-file $armScriptPath --parameters sqlServerAdministratorUser=$sqlAdminName --parameters sqlServerAdministratorPassword=$sqlAdminPassword --parameters vmUser=$vmUsername --parameters vmUserPassword=$vmUserPassword
     
     Ensure-Success
 

@@ -8,135 +8,209 @@
     },
     "sqlServerAdministratorPassword": {
       "type": "securestring"
+    },
+    "vmUser": {
+      "type": "string",
+      "defaultvalue": "premierdays"
+    },
+    "vmPassword": {
+      "type": "securestring"
     }
   },
   "variables": {
-    "web_name": "[concat('ttrewards',uniqueString(resourceGroup().id))]",
-    "plan_name": "[concat('ttrewardsplan',uniqueString(resourceGroup().id))]",
-    "function_name": "[concat('ttrewardsfunction',uniqueString(resourceGroup().id))]",
-    "storage_name": "[concat('ttstorage',uniqueString(resourceGroup().id))]",
-    "logicapp_name": "[concat('ttlogicapp',uniqueString(resourceGroup().id))]",
-    "definition": "[concat('{\"contentVersion\":\"1.0.0.0\",\"parameters\":{},\"actions\":{},\"triggers\":{},\"outputs\":{},\"$schema\":\"', variables('workflowSchema'), '\"}')]",
-    "workflowSchema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-    "sqlserver_name": "[concat('ttsqlserver',uniqueString(resourceGroup().id))]"
+    "sqlserver_name": "ttsqlserver",
+    "vm_name": "ttvmweb", 
+    "storage_name": "[concat(variables('vm_name'), 'storage')]",
+    "publicip_name": "[concat(variables('vm_name'), '-publicip')]",
+    "nsg_name": "[concat(variables('vm_name'), '-nsg')]",
+    "vnet_name": "[concat(variables('vm_name'), '-vnet')]",
+    "nic_name": "[concat(variables('vm_name'), '-nic')]"
   },
   "resources": [
-      {
-        "type": "microsoft.insights/components",
-        "name": "[variables('web_name')]",
-        "apiVersion": "2014-08-01",
-        "location": "westus2",
-        "properties": {
-            "ApplicationId": "[variables('web_name')]",
-            "Application_Type": "web",
-            "Flow_Type": "Brownfield",
-            "Request_Source": "IbizaWebAppExtensionCreate"
-        }
-    },
     {
-      "type": "Microsoft.Web/serverfarms",
-      "sku": {
-        "name": "S1"
-      },
-      "kind": "app",
-      "name": "[variables('plan_name')]",
-      "apiVersion": "2017-08-01",
-      "location": "[resourceGroup().location]"
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "kind": "app",
-      "name": "[variables('web_name')]",
-      "apiVersion": "2016-08-01",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "siteConfig": {
-          "appSettings": [
-            {
-              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('microsoft.insights/components/', variables('web_name')), '2015-05-01').InstrumentationKey]"
-            },
-            {
-              "name": "ByPassLogicApp",
-              "value": "false"
-            }
-          ],
-          "connectionStrings": [
-            {
-              "name": "dbContext",
-              "type":"SQLAzure",
-              "connectionString": "[concat('Server=tcp:',variables('sqlserver_name'),'.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=',parameters('sqlServerAdministratorUser'),';Password=',parameters('sqlServerAdministratorPassword'),';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
-            }
-          ]
-        },
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('plan_name'))]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('plan_name'))]",
-        "[resourceId('microsoft.insights/components/', variables('web_name'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "kind": "functionapp",
-      "name": "[variables('function_name')]",
-      "apiVersion": "2015-08-01",
-      "location": "[resourceGroup().location]",
-      "identity": {
-        "type": "SystemAssigned"
-      },
-      "tags": {
-
-      },
-      "properties": {
-        "name": "[variables('function_name')]",
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('plan_name'))]",
-        "kind": "functionapp",
-        "httpsOnly": true
-      },
-      "resources": [
-        {
-          "type": "config",
-          "name": "appsettings",
-          "apiVersion": "2015-08-01",
-          "properties": {
-            "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('microsoft.insights/components/', variables('web_name')), '2015-05-01').InstrumentationKey]",
-            "FUNCTIONS_EXTENSION_VERSION": "~1",
-            "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storage_name'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storage_name')), '2015-06-15').key1)]",
-            "WEBSITE_CONTENTSHARE": "[toLower(variables('function_name'))]",
-            "AzureWebJobsDashboard": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storage_name'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storage_name')), '2015-06-15').key1)]",
-            "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storage_name'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storage_name')), '2015-06-15').key1)]"
-          },
-          "dependsOn": [
-            "[concat('Microsoft.Web/Sites/', variables('function_name'))]",
-            "[resourceId('microsoft.insights/components/', variables('web_name'))]"
-          ]
-        }
-      ],
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverFarms', variables('plan_name'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storage_name'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('storage_name')]",
-      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2019-06-01",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "Storage"
+    },
+    {
+      "name": "[variables('publicip_name')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2019-11-01",
       "location": "[resourceGroup().location]",
       "properties": {
-        "accountType": "Standard_LRS"
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[toLower(variables('vm_name'))]"
+        }
       }
     },
     {
-      "type": "Microsoft.Logic/workflows",
-      "name": "[variables('logicapp_name')]",
-      "apiVersion": "2016-10-01",
+      "name": "[variables('nsg_name')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2018-08-01",
       "location": "[resourceGroup().location]",
-      "tags": {},
       "properties": {
-        "definition": "[json(variables('definition'))]",
-        "parameters": {},
-        "state": "Enabled"
+        "securityRules": [
+          {
+            "name": "nsgRule1",
+            "properties": {
+              "description": "description",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "nsgRule2",
+            "properties": {
+              "description": "description",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('vnet_name')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2019-11-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_name'))]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[concat(variables('vnet_name'),'-subnet')]",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg_name'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('nic_name')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2019-11-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicip_name'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnet_name'))]"
+      ],
+      "tags": {
+        "displayName": "windowsVM1 Network Interface"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipConfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicip_name'))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), concat(variables('vnet_name'),'-subnet'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('vm_name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2019-07-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', toLower(variables('storage_name')))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('nic_name'))]"
+      ],
+      "tags": {
+        "displayName": "[variables('vm_name')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B2ms"
+        },
+        "osProfile": {
+          "computerName": "[variables('vm_name')]",
+          "adminUsername": "[parameters('vmUser')]",
+          "adminPassword": "[parameters('vmPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2012-R2-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "windowsVM1OSDisk",
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nic_name'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true,
+            "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts/', toLower(variables('storage_name')))).primaryEndpoints.blob]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2019-07-01",
+      "name": "[concat(variables('vm_name'),'/', 'InstallWebServer')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+          "[concat('Microsoft.Compute/virtualMachines/',variables('vm_name'))]"
+      ],
+      "properties": {
+          "publisher": "Microsoft.Compute",
+          "type": "CustomScriptExtension",
+          "typeHandlerVersion": "1.7",
+          "autoUpgradeMinorVersion":true,
+          "settings": {
+            "fileUris": [
+              "https://raw.githubusercontent.com/Azure/azure-docs-json-samples/master/tutorial-vm-extension/installWebServer.ps1"
+            ],
+            "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File installWebServer.ps1"
+          }
       }
     },
     {
@@ -173,7 +247,7 @@
         {
           "type": "firewallrules",
           "name": "AllowAllWindowsAzureIps",
-          "apiVersion": "2014-04-01-preview",
+          "apiVersion": "2015-05-01-preview",
           "location": "[resourceGroup().location]",
           "properties": {
             "endIpAddress": "255.255.255.255",
@@ -204,14 +278,6 @@
     }
   ],
   "outputs": {
-    "web": {
-      "type": "string",
-      "value": "[variables('web_name')]"
-    },
-    "function": {
-      "type": "string",
-      "value": "[variables('function_name')]"
-    },
     "sqlserver": {
       "type": "string",
       "value": "[variables('sqlserver_name')]"
