@@ -5,6 +5,8 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [main]
+    tyoes: [labeled]
+
 
 env:
   AZURE_RESOURCE_GROUP_NAME: premierdays-rg
@@ -15,6 +17,11 @@ env:
   SQL_SCRIPT_PATH: Source/SQLScripts/CreateTablesAndPopulate.sql
 
 jobs:
+  print:
+    env: 
+      GITHUB_CONTEXT: ${{ toJson(github) }}
+    run:
+      echo "$GITHUB_CONTEXT"
   pr-build:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: windows-latest
@@ -65,7 +72,7 @@ jobs:
         
 
   provision-infra:
-    if: github.event.label.name == 'infra'
+    if: ${{ github.event.label.name == 'infra' }}
     runs-on: windows-latest
     steps:
       # checkout the repo
