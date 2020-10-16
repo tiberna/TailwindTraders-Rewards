@@ -10,7 +10,7 @@ on:
 
 env:
   AZURE_RESOURCE_GROUP_NAME: premierdays-rg
-  AZURE_RESOURCE_GROUP_LOCATION: westeurope# set this to your application's name
+  AZURE_RESOURCE_GROUP_LOCATION: westeurope
   AZURE_WEBAPP_PACKAGE_PATH: './Source'      # set this to the path to your web app project, defaults to the repository root
   NUGET_VERSION: '5.3.1'           # set this to the dot net version to use
   AZURE_DATABASE_CONNECTION_STRING: 'Server=tcp:ttsqlserverpremdays.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=premierdays;Password={1};MultipleActiveResultSets=False;Encrypt=true;TrustServerCertificate=False;Connection Timeout=30;'
@@ -20,9 +20,9 @@ jobs:
   print:
     runs-on: ubuntu-latest
     env: 
-      GITHUB_CONTEXT: ${{ toJson(github) }}
+      GITHUB_EVENT: ${{ toJson(github.event) }}
     steps:
-    - run: echo "$GITHUB_CONTEXT"
+    - run: echo "$GITHUB_EVENT"
   pr-build:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: windows-latest
