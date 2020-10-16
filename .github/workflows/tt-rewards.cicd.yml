@@ -18,10 +18,12 @@ env:
 
 jobs:
   print:
+    runs-on: ubuntu-latest
     env: 
       GITHUB_CONTEXT: ${{ toJson(github) }}
-    run:
-      echo "$GITHUB_CONTEXT"
+    steps:
+      run:
+        echo "$GITHUB_CONTEXT"
   pr-build:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: windows-latest
