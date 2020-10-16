@@ -18,7 +18,7 @@
     }
   },
   "variables": {
-    "sqlserver_name": "ttsqlserver",
+    "sqlserver_name": "ttsqlserverpremdays",
     "vm_name": "ttvmweb", 
     "storage_name": "[concat(variables('vm_name'), 'storage')]",
     "publicip_name": "[concat(variables('vm_name'), '-publicip')]",

@@ -11,7 +11,7 @@ env:
   AZURE_RESOURCE_GROUP_LOCATION: westeurope# set this to your application's name
   AZURE_WEBAPP_PACKAGE_PATH: './Source'      # set this to the path to your web app project, defaults to the repository root
   NUGET_VERSION: '5.3.1'           # set this to the dot net version to use
-  AZURE_DATABASE_CONNECTION_STRING: 'Server=tcp:{0}.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=premierdays;Password={1};MultipleActiveResultSets=False;Encrypt=true;TrustServerCertificate=False;Connection Timeout=30;'
+  AZURE_DATABASE_CONNECTION_STRING: 'Server=tcp:ttsqlserverpremdays.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=premierdays;Password={1};MultipleActiveResultSets=False;Encrypt=true;TrustServerCertificate=False;Connection Timeout=30;'
   SQL_SCRIPT_PATH: Source/SQLScripts/CreateTablesAndPopulate.sql
 
 jobs:
@@ -83,14 +83,13 @@ jobs:
         az group create -n ${{ env.AZURE_RESOURCE_GROUP_NAME }} -l ${{ env.AZURE_RESOURCE_GROUP_LOCATION }} 
         az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters vmUserPassword=${{ secrets.VM_PWD }}
         $result = az group deployment show --name ghaction --resource-group ${{ env.AZURE_RESOURCE_GROUP_NAME }} --query '[properties.outputs.sqlserver.value]' -o tsv
-        $web_name = $result[0]
-        $sql_server_name = $result[1]
+        $sql_server_name = $result[0]
         Write-Output "::set-env name=SQL_SERVER_NAME::$sql_server_name"
 
     - name: Migrate and seed database
       uses: Azure/sql-action@v1
       with:
-        server-name: ${{ format('{0}.database.windows.net', env.SQL_SERVER_NAME) }}
-        connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, env.SQL_SERVER_NAME, secrets.SQL_ADMIN_USER, secrets.SQL_ADMIN_PWD ) }}
+        server-name: "ttsqlserverpremdays"
+        connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}
         sql-file: ${{ env.SQL_SCRIPT_PATH }}
     
