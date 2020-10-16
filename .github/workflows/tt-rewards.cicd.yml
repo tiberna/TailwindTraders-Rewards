@@ -89,7 +89,7 @@ jobs:
     - name: Deploy ARM
       run: |
         az group create -n ${{ env.AZURE_RESOURCE_GROUP_NAME }} -l ${{ env.AZURE_RESOURCE_GROUP_LOCATION }} 
-        az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters vmPassword=${{ secrets.VM_PWD }}
+        az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters sqlServerAdministratorUser=sqladmin --parameters vmUser=premierdays --parameters vmPassword=${{ secrets.VM_PWD }}
 
     - name: Migrate and seed database
       uses: Azure/sql-action@v1
