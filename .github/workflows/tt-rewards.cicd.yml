@@ -48,6 +48,8 @@ jobs:
     - name: Run MSBuild
       run: msbuild '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/TailwindTraders.Rewards.Website.sln'
 
+    - run: dir ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
     - name: Package webapp
       uses: actions/upload-artifact@v2
       with:
