@@ -94,7 +94,7 @@ jobs:
     - name: Migrate and seed database
       uses: Azure/sql-action@v1
       with:
-        server-name: "ttsqlserverpremdays"
+        server-name: "ttsqlserverpremdays.database.windows.net"
         connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}
         sql-file: ${{ env.SQL_SCRIPT_PATH }}
     
