@@ -104,8 +104,3 @@ jobs:
         connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}
         sql-file: ${{ env.SQL_SCRIPT_PATH }}
     
-  deploy-website:
-    if: ${{ github.event.label.name == 'deploy' }}
-    runs-on: windows-latest
-    needs: [main-build]
-    steps:
