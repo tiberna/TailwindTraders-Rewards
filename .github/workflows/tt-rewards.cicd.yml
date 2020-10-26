@@ -54,7 +54,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ttweb
-        path: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/bin'
+        path: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Website/bin'
 
   
   main-build:
