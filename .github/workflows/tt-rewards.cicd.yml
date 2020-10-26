@@ -52,7 +52,7 @@ jobs:
       with:
         files: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Website/Web.config'
       env:
-        connectionStrings.dbContext: "${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}"
+        dbContext: "${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}"
 
     - name: Package webapp
       uses: actions/upload-artifact@v2
