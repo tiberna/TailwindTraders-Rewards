@@ -48,6 +48,12 @@ jobs:
     - name: Run MSBuild
       run: msbuild '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/TailwindTraders.Rewards.Website.sln'
 
+    - name: Package webapp
+      uses: actions/upload-artifact@v2
+      with:
+        name: ttweb
+        path: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/bin'
+
   
   main-build:
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.merged == true) }}
@@ -98,3 +104,8 @@ jobs:
         connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}
         sql-file: ${{ env.SQL_SCRIPT_PATH }}
     
+  deploy-website:
+    if: ${{ github.event.label.name == 'deploy' }}
+    runs-on: windows-latest
+    needs: [main-build]
+    steps:
