@@ -17,7 +17,7 @@
             <asp:Label ID="lblMessageUpdate" runat="server" />
         </asp:Panel>
         
-        <div>
+        <div> 
             <fieldset class="admin-form">
                 <h2 class="title">Customers</h2>
                 <div class="checkbox-wrapper">

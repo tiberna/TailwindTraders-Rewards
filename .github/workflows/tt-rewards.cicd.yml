@@ -5,16 +5,24 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [main]
+    types: [labeled, opened, synchronize]
+
 
 env:
   AZURE_RESOURCE_GROUP_NAME: premierdays-rg
-  AZURE_RESOURCE_GROUP_LOCATION: westeurope# set this to your application's name
+  AZURE_RESOURCE_GROUP_LOCATION: westeurope
   AZURE_WEBAPP_PACKAGE_PATH: './Source'      # set this to the path to your web app project, defaults to the repository root
   NUGET_VERSION: '5.3.1'           # set this to the dot net version to use
-  AZURE_DATABASE_CONNECTION_STRING: 'Server=tcp:ttsqlserverpremdays.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=premierdays;Password={1};MultipleActiveResultSets=False;Encrypt=true;TrustServerCertificate=False;Connection Timeout=30;'
+  AZURE_DATABASE_CONNECTION_STRING: 'Server=tcp:ttsqlserverpremdays.database.windows.net,1433;Initial Catalog=rewardsdb;Persist Security Info=False;User ID=sqladmin;Password={0};MultipleActiveResultSets=False;Encrypt=true;TrustServerCertificate=False;Connection Timeout=30;'
   SQL_SCRIPT_PATH: Source/SQLScripts/CreateTablesAndPopulate.sql
 
 jobs:
+  print:
+    runs-on: ubuntu-latest
+    env: 
+      GITHUB_EVENT: ${{ toJson(github.event) }}
+    steps:
+    - run: echo "$GITHUB_EVENT"
   pr-build:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: windows-latest
@@ -39,6 +47,18 @@ jobs:
     
     - name: Run MSBuild
       run: msbuild '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/TailwindTraders.Rewards.Website.sln'
+
+    - uses: microsoft/variable-substitution@v1 
+      with:
+        files: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Website/Web.config'
+      env:
+        dbContext: "${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}"
+
+    - name: Package webapp
+      uses: actions/upload-artifact@v2
+      with:
+        name: ttweb
+        path: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Website'
 
   
   main-build:
@@ -65,7 +85,7 @@ jobs:
         
 
   provision-infra:
-    if: github.event.label.name == 'infra'
+    if: ${{ github.event.label.name == 'infra' }}
     runs-on: windows-latest
     steps:
       # checkout the repo
@@ -81,15 +101,12 @@ jobs:
     - name: Deploy ARM
       run: |
         az group create -n ${{ env.AZURE_RESOURCE_GROUP_NAME }} -l ${{ env.AZURE_RESOURCE_GROUP_LOCATION }} 
-        az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters vmUserPassword=${{ secrets.VM_PWD }}
-        $result = az group deployment show --name ghaction --resource-group ${{ env.AZURE_RESOURCE_GROUP_NAME }} --query '[properties.outputs.sqlserver.value]' -o tsv
-        $sql_server_name = $result[0]
-        Write-Output "::set-env name=SQL_SERVER_NAME::$sql_server_name"
+        az deployment group create -n ghaction -g ${{ env.AZURE_RESOURCE_GROUP_NAME }} --template-file Deploy/deployment.json --parameters sqlServerAdministratorPassword=${{ secrets.SQL_ADMIN_PWD }} --parameters sqlServerAdministratorUser=sqladmin --parameters vmUser=premierdays --parameters vmPassword=${{ secrets.VM_PWD }}
 
     - name: Migrate and seed database
       uses: Azure/sql-action@v1
       with:
-        server-name: "ttsqlserverpremdays"
+        server-name: "ttsqlserverpremdays.database.windows.net"
         connection-string: ${{ format(env.AZURE_DATABASE_CONNECTION_STRING, secrets.SQL_ADMIN_PWD ) }}
         sql-file: ${{ env.SQL_SCRIPT_PATH }}
     
